@@ -49,7 +49,7 @@ namespace httpdfaust
     // static functions
     // provided as callbacks to mhttpd
     //--------------------------------------------------------------------------
-    static int _answer_to_connection(void* cls, struct MHD_Connection* connection, const char* url, const char* method, const char* version,
+    static MHD_Result _answer_to_connection(void* cls, struct MHD_Connection* connection, const char* url, const char* method, const char* version,
                                             const char* upload_data, long unsigned* upload_data_size, void** con_cls)
     {
         HTTPDServer* server = (HTTPDServer*)cls;
@@ -87,7 +87,7 @@ namespace httpdfaust
     
     //--------------------------------------------------------------------------
     // fonct(ion appelée par libmicrohttpd pour tous les parametres de la requète (soit GET soit POST)
-    static int _get_params(void* cls, enum MHD_ValueKind kind, const char* key, const char* value)
+    static MHD_Result _get_params(void* cls, enum MHD_ValueKind kind, const char* key, const char* value)
     {
         Message* msg = (Message*)cls;
         msg->add (string(key));
@@ -115,12 +115,12 @@ namespace httpdfaust
     //--------------------------------------------------------------------------
     bool HTTPDServer::start(int port)
     {
-        fServer = MHD_start_daemon(MHD_USE_SELECT_INTERNALLY, port, NULL, NULL, (MHD_AccessHandlerCallback)_answer_to_connection, this, MHD_OPTION_END);
+        fServer = MHD_start_daemon (MHD_USE_SELECT_INTERNALLY, port, NULL, NULL, _answer_to_connection, this, MHD_OPTION_END);
         return fServer != 0;
     }
     
     //--------------------------------------------------------------------------
-    int HTTPDServer::send(struct MHD_Connection* connection, const char* page, const char* type, int status)
+    MHD_Result HTTPDServer::send(struct MHD_Connection* connection, const char* page, const char* type, int status)
     {
         struct MHD_Response* response = MHD_create_response_from_buffer(strlen (page), (void*) page, MHD_RESPMEM_MUST_COPY);
         if (!response) {
@@ -129,7 +129,7 @@ namespace httpdfaust
         }
         MHD_add_response_header(response, "Content-Type", type ? type : "text/plain");
         MHD_add_response_header(response, "Access-Control-Allow-Origin", "*");
-        int ret = MHD_queue_response(connection, status, response);
+        MHD_Result ret = MHD_queue_response(connection, status, response);
         MHD_destroy_response(response);
         return ret;
     }
@@ -147,9 +147,9 @@ namespace httpdfaust
     }
     
     //--------------------------------------------------------------------------
-    int HTTPDServer::page(struct MHD_Connection* connection, const char* page)
+    MHD_Result HTTPDServer::page(struct MHD_Connection* connection, const char* page)
     {
-        int ret = MHD_NO;
+        MHD_Result ret = MHD_NO;
         //    char * root =  getenv("FAUSTDocumentRoot");
         string file = ".";
         file += page;
@@ -183,7 +183,7 @@ namespace httpdfaust
     }
     
     //--------------------------------------------------------------------------
-    int HTTPDServer::send(struct MHD_Connection* connection, const std::vector<Message*>& msgs)
+    MHD_Result HTTPDServer::send(struct MHD_Connection* connection, std::vector<Message*> msgs)
     {
         stringstream page;
         string mime;
@@ -206,7 +206,7 @@ namespace httpdfaust
     //--------------------------------------------------------------------------
     // Callback appelée par libmicrohttpd
     //--------------------------------------------------------------------------
-    int HTTPDServer::answer(struct MHD_Connection* connection, const char* url, const char* method, const char* version,
+    MHD_Result HTTPDServer::answer(struct MHD_Connection* connection, const char* url, const char* method, const char* version,
                                    const char* upload_data, long unsigned* upload_data_size, void** con_cls)
     {
         MHD_ValueKind t = MHD_GET_ARGUMENT_KIND;
@@ -220,7 +220,7 @@ namespace httpdfaust
         }
         
         Message msg(url);
-        MHD_get_connection_values(connection, t, (MHD_KeyValueIterator)_get_params, &msg);
+        MHD_get_connection_values(connection, t, _get_params, &msg);
         vector<Message*> outMsgs;
         if (fDebug) {
             cout << method << ": ";
