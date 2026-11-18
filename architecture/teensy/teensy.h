@@ -31,10 +31,13 @@
 #include "AudioStream.h"
 #include "Audio.h"
 
-#define fprintf(X, Y, Z) Serial.printf(Y, Z)
+#define fprintf(stream, ...) Serial.printf(__VA_ARGS__)
 
 class dsp;
 class MapUI;
+#ifdef NVOICES
+class mcu_dsp_poly;
+#endif
 
 #if MIDICTRL
 class MidiUI;
@@ -66,6 +69,9 @@ class AudioFaust : public AudioStream
         MidiUI* fMIDIInterface;
     #endif
         dsp* fDSP;
+    #ifdef NVOICES
+        mcu_dsp_poly* fPoly;
+    #endif
 };
 
 #endif
