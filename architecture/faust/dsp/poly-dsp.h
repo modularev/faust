@@ -973,8 +973,8 @@ class mydsp_poly : public dsp_voice_group, public dsp_poly {
         {
             // MidiUI ui_interface contains the midi_handler connected to the MIDI driver
             #ifdef DAISY_NO_RTTI
-            if (ui_interface->isMidiInterface()) {
-                fMidiHandler = reinterpret_cast<midi_interface*>(ui_interface);
+            if (midi_interface* handler = ui_interface->getMidiInterface()) {
+                fMidiHandler = handler;
                 fMidiHandler->addMidiIn(this);
             }
             #else
