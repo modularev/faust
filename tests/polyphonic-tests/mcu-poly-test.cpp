@@ -136,12 +136,12 @@ int main() {
         std::string keys; for (int i = 0; i < map.getParamsCount(); i++) if (map.getParamAddress(i).find("/keys") != std::string::npos) keys = map.getParamAddress(i);
         std::vector<float> l(N), r(N); float* o[2] = {l.data(), r.data()}; float* in[2] = {0, 0};
         auto run = [&](int blocks) { for (int k = 0; k < blocks; k++) p->compute(N, in, o); };
-        map.setParamValue(keys, 1); run(1);   // poly 2
+        map.setParamValue(keys, 1); run(1);   // reuse
         p->keyOn(0, 60, 100); p->keyOn(0, 64, 100); run(2); p->keyOff(0, 60, 0); p->keyOff(0, 64, 0); run(2);
         bool releasing = p->voiceNote(0) == -2 && p->voiceNote(1) == -2;
         p->keyOn(0, 67, 100); run(4);
-        CHECK(releasing && p->voiceNote(0) == 67, "poly 2: a new note takes the lowest releasing voice");
-        CHECK(p->voiceNote(1) == -1, "poly 2: the other release tail is stopped");
+        CHECK(releasing && p->voiceNote(0) == 67, "reuse: a new note takes the lowest releasing voice");
+        CHECK(p->voiceNote(1) == -1, "reuse: the other release tail is stopped");
         p->keyOff(0, 67, 0); run(200);
         map.setParamValue(keys, 2); run(1);   // unison
         p->keyOn(0, 60, 100); run(4);
@@ -158,7 +158,7 @@ int main() {
         map.setParamValue(keys, 0); run(1);
         p->keyOn(0, 60, 100); p->keyOn(0, 64, 100); run(4);
         int held = 0; for (int i = 0; i < 6; i++) held += p->voiceNote(i) == 60 || p->voiceNote(i) == 64;
-        CHECK(held == 2, "poly 1 again: two notes, two voices");
+        CHECK(held == 2, "rotate again: two notes, two voices");
         delete p;
     }
 

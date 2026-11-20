@@ -10,7 +10,7 @@ gate    = button("gate");
 attack  = hslider("Attack [midi:ctrl 73]", 0.01, 0, 1, 0.001);
 release = hslider("Release", 0.2, 0.001, 2, 0.001);
 cutoff  = hslider("Cutoff", 2000, 50, 10000, 1);
-keys    = hslider("keys [poly:mode] [style:menu{'poly 1':0;'poly 2':1;'unison':2}]", 0, 0, 2, 1);
+keys    = hslider("keys [poly:mode] [style:menu{'rotate':0;'reuse':1;'unison':2}]", 0, 0, 2, 1);
 voice   = hslider("voice [poly:voice]", 0, 0, 15, 1);
 spread  = hslider("Spread", 0.5, 0, 1, 0.01);
 
