@@ -57,6 +57,11 @@
 
 #include "faust/dsp/tiered-memory-manager.h"
 
+// zones the manager tracks at a time (8 bytes each): a big reverb
+// (mooSpace2) has 195, more than tiered_memory_manager's default 128
+#ifndef FAUST_TEENSY_ZONES
+#define FAUST_TEENSY_ZONES 256
+#endif
 #ifndef FAUST_TEENSY_SMALL
 #define FAUST_TEENSY_SMALL 1024
 #endif
@@ -98,11 +103,11 @@ namespace teensy_memory {
         return a;
     }
 
-    inline tiered_memory_manager<4>& manager()
+    inline tiered_memory_manager<4, FAUST_TEENSY_ZONES>& manager()
     {
         static malloc_tier heap(heapFree);
         static extmem_tier psram;
-        static tiered_memory_manager<4> m;
+        static tiered_memory_manager<4, FAUST_TEENSY_ZONES> m;
         static bool ready = false;
         if (!ready) {
             m.addTier(heap, 0, FAUST_TEENSY_SMALL - 1);
