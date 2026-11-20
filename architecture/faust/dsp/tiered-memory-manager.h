@@ -183,7 +183,7 @@ class tiered_memory_manager : public dsp_memory_manager {
             }
         }
 
-        // the tier of an allocated zone (its index in the order added), -1 if not ours
+        // the tier of an allocated zone (its index in the order added), -1 if this manager did not allocate it
         int tierOf(const void* ptr) const
         {
             for (int z = 0; z < fZoneCount; z++)

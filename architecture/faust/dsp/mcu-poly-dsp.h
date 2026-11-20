@@ -192,7 +192,7 @@ class mcu_dsp_poly : public dsp, public midi {
         int fLimit;               // voices in use (setVoiceLimit)
         bool fControl;            // false: every voice always runs (poly-dsp.h 'control')
         bool fRetrigger = true;   // a held note played again restarts its voice
-        // assign mode (the Juno-106's): POLY1, POLY2, UNISON; from a [poly:mode]
+        // assign mode: POLY1, POLY2, UNISON; from a [poly:mode]
         // parameter if the program has one, else setAssignMode()
         FAUSTFLOAT* fModeZone = nullptr;
         int fAssign = 0;
@@ -305,7 +305,7 @@ class mcu_dsp_poly : public dsp, public midi {
 
         // Poly 2: the lowest voice that is free or only releasing (else the
         // oldest playing one); the other release tails stop, so only the
-        // last notes played together keep their release (the 106's manual)
+        // last notes played together keep their release
         Voice* allocatePoly2()
         {
             Voice* v = nullptr;

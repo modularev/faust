@@ -1,7 +1,7 @@
 // mcu-poly-test.cpp - faust/dsp/mcu-poly-dsp.h against faust/dsp/poly-dsp.h,
 // with the voice and effect of mcu-poly-voice.dsp
 //
-// 1. the UI paths of both (apart from the note parameters ours hides)
+// 1. the UI paths of both (apart from the note parameters mcu-poly-dsp.h hides)
 // 2. MIDI through a FAUST MidiUI: registration, note on/off per channel,
 //    CC 120/123, a repeated note, [midi:ctrl], Panic, delete
 // 3. the audio of the same notes through both: bit identical
@@ -44,7 +44,7 @@ mcu_dsp_poly* makeMcu(int voices, bool effect) {
     auto* p = new mcu_dsp_poly(v.data(), voices, del, effect ? new mcupolyeffect() : nullptr, del, N);
     p->init(SR); return p;
 }
-dsp_poly* makeUpstream(int voices, bool effect) {
+dsp_poly* makePolyDsp(int voices, bool effect) {
     auto* poly = new mydsp_poly(new mcupolyvoice(), voices, true, true);
     dsp_poly* d = effect ? (dsp_poly*)new dsp_poly_effect(poly, new dsp_sequencer(poly, new mcupolyeffect()))
                          : (dsp_poly*)new dsp_poly_effect(poly, poly);
@@ -68,16 +68,16 @@ std::vector<float> render(dsp* d, int samples, std::vector<std::pair<int, std::v
 int main() {
     // 1. UI paths
     for (bool effect : {false, true}) {
-        auto* a = makeMcu(6, effect); auto* b = makeUpstream(6, effect);
+        auto* a = makeMcu(6, effect); auto* b = makePolyDsp(6, effect);
         auto pa = paths(a), pb = paths(b);
-        std::set<std::string> onlyUp, onlyOurs;
-        for (auto& p : pb) if (!pa.count(p)) onlyUp.insert(p);
-        for (auto& p : pa) if (!pb.count(p)) onlyOurs.insert(p);
-        printf("%s effect: %zu paths ours, %zu upstream\n", effect ? "with" : "without", pa.size(), pb.size());
-        for (auto& p : onlyUp) printf("   only upstream: %s\n", p.c_str());
-        for (auto& p : onlyOurs) printf("   only ours:     %s\n", p.c_str());
-        bool onlyNotes = onlyOurs.empty();
-        for (auto& p : onlyUp) { auto last = p.substr(p.rfind('/') + 1); if (last != "freq" && last != "gain" && last != "gate" && last != "voice") onlyNotes = false; }
+        std::set<std::string> onlyPolyDsp, onlyMcu;
+        for (auto& p : pb) if (!pa.count(p)) onlyPolyDsp.insert(p);
+        for (auto& p : pa) if (!pb.count(p)) onlyMcu.insert(p);
+        printf("%s effect: %zu paths mcu-poly-dsp.h, %zu poly-dsp.h\n", effect ? "with" : "without", pa.size(), pb.size());
+        for (auto& p : onlyPolyDsp) printf("   only poly-dsp.h:     %s\n", p.c_str());
+        for (auto& p : onlyMcu) printf("   only mcu-poly-dsp.h: %s\n", p.c_str());
+        bool onlyNotes = onlyMcu.empty();
+        for (auto& p : onlyPolyDsp) { auto last = p.substr(p.rfind('/') + 1); if (last != "freq" && last != "gain" && last != "gate" && last != "voice") onlyNotes = false; }
         CHECK(onlyNotes, effect ? "paths match poly-dsp.h (with effect), apart from freq/gain/gate/voice" : "paths match poly-dsp.h (without effect), apart from freq/gain/gate/voice");
         delete a; delete b;
     }
@@ -164,7 +164,7 @@ int main() {
 
     // 3. audio: the same chord through both (spread 0: poly-dsp.h numbers no voices)
     for (bool effect : {false, true}) {
-        auto* a = makeMcu(6, effect); auto* b = makeUpstream(6, effect);
+        auto* a = makeMcu(6, effect); auto* b = makePolyDsp(6, effect);
         a->setRetrigger(false);
         for (dsp* d : {(dsp*)a, (dsp*)b}) { MapUI ui; d->buildUserInterface(&ui);
             for (int i = 0; i < ui.getParamsCount(); i++) { auto p = ui.getParamAddress(i);

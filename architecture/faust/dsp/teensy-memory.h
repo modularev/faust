@@ -57,8 +57,8 @@
 
 #include "faust/dsp/tiered-memory-manager.h"
 
-// zones the manager tracks at a time (8 bytes each): a big reverb
-// (mooSpace2) has 195, more than tiered_memory_manager's default 128
+// zones the manager tracks at a time (8 bytes each): a large reverb can
+// have ~200, more than tiered_memory_manager's default 128
 #ifndef FAUST_TEENSY_ZONES
 #define FAUST_TEENSY_ZONES 256
 #endif
