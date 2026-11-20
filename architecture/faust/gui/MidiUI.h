@@ -868,6 +868,7 @@ class MidiUI : public GUI, public midi, public midi_interface, public MetaDataUI
 
 #ifdef DAISY_NO_RTTI
         virtual bool isMidiInterface() const override { return true; }
+        virtual midi_interface* getMidiInterface() override { return this; }
 #endif
     
         bool run() { return fMidiHandler->startMidi(); }

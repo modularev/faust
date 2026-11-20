@@ -39,6 +39,7 @@
  ******************************************************************************/
 
 struct Soundfile;
+class midi_interface;
 
 template <typename REAL>
 struct FAUST_API UIReal {
@@ -86,6 +87,9 @@ struct FAUST_API UI : public UIReal<FAUSTFLOAT> {
 #ifdef DAISY_NO_RTTI
     virtual bool isSoundUI() const { return false; }
     virtual bool isMidiInterface() const { return false; }
+    // the UI as a MIDI interface (MidiUI), or null: a reinterpret_cast of the
+    // UI pointer misses the offset of the midi_interface base inside MidiUI
+    virtual midi_interface* getMidiInterface() { return nullptr; }
 #endif
 };
 
