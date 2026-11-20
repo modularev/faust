@@ -389,7 +389,7 @@ class mcu_dsp_poly : public dsp, public midi {
         void registerMidi(UI* ui)
         {
 #if defined(DAISY_NO_RTTI)
-            if (ui->isMidiInterface()) setMidiHandler(reinterpret_cast<midi_interface*>(ui));
+            if (midi_interface* handler = ui->getMidiInterface()) setMidiHandler(handler);
 #elif defined(__GXX_RTTI) || defined(_CPPRTTI) || defined(__cpp_rtti)
             if (midi_interface* handler = dynamic_cast<midi_interface*>(ui)) setMidiHandler(handler);
 #else
@@ -562,7 +562,14 @@ class mcu_dsp_poly : public dsp, public midi {
             }
         }
         int getSampleRate() override { return fVoices[0].fDSP->getSampleRate(); }
-        void init(int sample_rate) override { instanceInit(sample_rate); }
+        // as dsp::init(): the static tables too (classInit, through the first
+        // voice's and the effect's init()), then every instance
+        void init(int sample_rate) override
+        {
+            if (fCount > 0) fVoices[0].fDSP->init(sample_rate);
+            if (fEffect) fEffect->init(sample_rate);
+            instanceInit(sample_rate);
+        }
         // the voices' numbers (instanceInit and instanceResetUserInterface set the defaults)
         void setIndices()
         {

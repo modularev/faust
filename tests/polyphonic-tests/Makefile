@@ -5,7 +5,7 @@ FAUST ?= faust
 
 .PHONY: check clean
 
-check: voice-steal-repro legato-fade-repro bargraph-current-repro mcu-poly
+check: voice-steal-repro legato-fade-repro bargraph-current-repro mcu-poly mcu-poly-nortti
 	./voice-steal-repro
 	./legato-fade-repro
 	./bargraph-current-repro
@@ -32,5 +32,14 @@ mcupolyeffect.h: mcu-poly-voice.dsp
 mcu-poly-test: mcu-poly-test.cpp mcupolyvoice.h mcupolyeffect.h ../../architecture/faust/dsp/mcu-poly-dsp.h
 	$(CXX) $(CPPFLAGS) -I. $(CXXFLAGS) $< -o $@
 
+# the same without RTTI, as on a Daisy or a Teensy (-fno-rtti, DAISY_NO_RTTI):
+# the poly registers with the MidiUI through UI::getMidiInterface() (a
+# reinterpret_cast of the UI pointer missed the midi_interface base: no notes)
+mcu-poly-nortti: mcu-poly-test-nortti
+	./mcu-poly-test-nortti
+
+mcu-poly-test-nortti: mcu-poly-test.cpp mcupolyvoice.h mcupolyeffect.h ../../architecture/faust/dsp/mcu-poly-dsp.h
+	$(CXX) $(CPPFLAGS) -I. $(CXXFLAGS) -fno-rtti -DDAISY_NO_RTTI $< -o $@
+
 clean:
-	rm -f voice-steal-repro legato-fade-repro bargraph-current-repro mcu-poly-test mcupolyvoice.h mcupolyeffect.h
+	rm -f voice-steal-repro legato-fade-repro bargraph-current-repro mcu-poly-test mcu-poly-test-nortti mcupolyvoice.h mcupolyeffect.h
