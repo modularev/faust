@@ -36,9 +36,9 @@ mcupolyvoicemem.h: mcu-poly-voice.dsp
 mcu-poly-test: mcu-poly-test.cpp mcupolyvoice.h mcupolyeffect.h mcupolyvoicemem.h ../../architecture/faust/dsp/mcu-poly-dsp.h
 	$(CXX) $(CPPFLAGS) -I. $(CXXFLAGS) $< -o $@
 
-# the same without RTTI, as on a Teensy (-fno-rtti; MIDI registered with
-# setMidiHandler()); DAISY_NO_RTTI only for poly-dsp.h, the reference, which
-# needs it to build without RTTI
+# the same without RTTI and with DAISY_NO_RTTI, as on a Daisy: the MidiUI
+# is found through UI::getMidiInterface() (poly-dsp.h, the reference, also
+# needs DAISY_NO_RTTI to build without RTTI)
 mcu-poly-nortti: mcu-poly-test-nortti
 	./mcu-poly-test-nortti
 

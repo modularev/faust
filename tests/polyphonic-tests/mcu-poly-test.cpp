@@ -200,7 +200,7 @@ int main() {
     {
         auto* p = makeMcu(6, true);
         TestHandler h; MidiUI midiui(&h); p->buildUserInterface(&midiui); midiui.run();
-#if !(defined(__GXX_RTTI) || defined(_CPPRTTI) || defined(__cpp_rtti))
+#if !(defined(__GXX_RTTI) || defined(_CPPRTTI) || defined(__cpp_rtti)) && !defined(DAISY_NO_RTTI)
         p->setMidiHandler(&h);   // without RTTI the MidiUI can't be recognised: registered by hand, as on a Teensy
 #endif
         h.handleKeyOn(0, 0, 60, 100); h.handleKeyOn(0, 0, 64, 100); h.handleKeyOn(0, 1, 67, 100);

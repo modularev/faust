@@ -62,7 +62,8 @@
 //
 // MIDI, as poly-dsp.h: the class is a FAUST 'midi' receiver. Built with a
 // MidiUI (a midi_interface), it registers itself where the build has RTTI
-// (without RTTI, e.g. on a Teensy: setMidiHandler()); notes can
+// or DAISY_NO_RTTI (UI::getMidiInterface()); otherwise, e.g. on a Teensy,
+// call setMidiHandler(). Notes can
 // also be sent directly: keyOn(channel, pitch, velocity), keyOff(..). A note
 // off releases the oldest voice playing that note on that channel (a note
 // played again while held, or while waiting for its voice, restarts that
@@ -226,6 +227,7 @@ class mcu_dsp_poly : public dsp, public midi {
 #ifdef DAISY_NO_RTTI
             bool isSoundUI() const override { return fUI->isSoundUI(); }
             bool isMidiInterface() const override { return fUI->isMidiInterface(); }
+            midi_interface* getMidiInterface() override { return fUI->getMidiInterface(); }
 #endif
         };
 
@@ -474,7 +476,9 @@ class mcu_dsp_poly : public dsp, public midi {
 
         void registerMidi(UI* ui)
         {
-#if defined(__GXX_RTTI) || defined(_CPPRTTI) || defined(__cpp_rtti)
+#if defined(DAISY_NO_RTTI)
+            if (midi_interface* handler = ui->getMidiInterface()) setMidiHandler(handler);
+#elif defined(__GXX_RTTI) || defined(_CPPRTTI) || defined(__cpp_rtti)
             if (midi_interface* handler = dynamic_cast<midi_interface*>(ui)) setMidiHandler(handler);
 #else
             (void)ui;  // no RTTI: call setMidiHandler()
