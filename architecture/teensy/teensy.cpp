@@ -113,9 +113,15 @@ static void deleteVoice(dsp* d) { delete d; }
 
 AudioFaust::AudioFaust() : AudioStream(FAUST_INPUTS, new audio_block_t*[FAUST_INPUTS])
 {
+    fDSP = nullptr;
+#ifdef NVOICES
+    fPoly = nullptr;
+#endif
 #ifdef FAUST_TEENSY_MEM
     // allocated through the tiers (DTCM, RAM2, PSRAM)
     mydsp::fManager = &teensy_memory::manager();
+    // failures() counts since the start: compare with the count before this object
+    int failures = teensy_memory::manager().failures();
 #endif
     // init() = classInit() + instanceInit(); with -mem init() does nothing
     mydsp::classInit(AUDIO_SAMPLE_RATE_EXACT);
@@ -124,18 +130,43 @@ AudioFaust::AudioFaust() : AudioStream(FAUST_INPUTS, new audio_block_t*[FAUST_IN
     for (int i = 0; i < NVOICES; i++) {
         voices[i] = newVoice();
     }
-    fPoly = new mcu_dsp_poly(voices, NVOICES, deleteVoice, nullptr, nullptr, AUDIO_BLOCK_SAMPLES);
-    fDSP = fPoly;
 #else
-    fDSP = newVoice();
+    dsp* voice = newVoice();
 #endif
-    fDSP->instanceInit(AUDIO_SAMPLE_RATE_EXACT);
-    
+#ifdef FAUST_TEENSY_MEM
+    // a zone that found no memory is nullptr and the generated code doesn't
+    // test it: never initialize or run such a program, stay silent instead
+    // (classInit() fills its tables at once, so they must fit: they are
+    // allocated first, while all the memory is still free)
+    if (teensy_memory::manager().failures() > failures) {
+        Serial.println("Faust: not enough memory for the DSP, the object stays silent");
+#ifdef NVOICES
+        for (int i = 0; i < NVOICES; i++) {
+            deleteVoice(voices[i]);
+        }
+#else
+        deleteVoice(voice);
+#endif
+        mydsp::classDestroy();
+    } else
+#endif
+    {
+#ifdef NVOICES
+        fPoly = new mcu_dsp_poly(voices, NVOICES, deleteVoice, nullptr, nullptr, AUDIO_BLOCK_SAMPLES);
+        fDSP = fPoly;
+#else
+        fDSP = voice;
+#endif
+        fDSP->instanceInit(AUDIO_SAMPLE_RATE_EXACT);
+    }
+
     fUI = new MapUI();
-    fDSP->buildUserInterface(fUI);
-    
+    if (fDSP) {
+        fDSP->buildUserInterface(fUI);
+    }
+
     // allocating Faust inputs
-    if (fDSP->getNumInputs() > 0) {
+    if (fDSP && fDSP->getNumInputs() > 0) {
         fInChannel = new float*[fDSP->getNumInputs()];
         for (int i = 0; i < fDSP->getNumInputs(); i++) {
             fInChannel[i] = new float[AUDIO_BLOCK_SAMPLES];
@@ -145,7 +176,7 @@ AudioFaust::AudioFaust() : AudioStream(FAUST_INPUTS, new audio_block_t*[FAUST_IN
     }
     
     // allocating Faust outputs
-    if (fDSP->getNumOutputs() > 0) {
+    if (fDSP && fDSP->getNumOutputs() > 0) {
         fOutChannel = new float*[fDSP->getNumOutputs()];
         for (int i = 0; i < fDSP->getNumOutputs(); i++) {
             fOutChannel[i] = new float[AUDIO_BLOCK_SAMPLES];
@@ -181,16 +212,18 @@ void AudioFaust::startMidi()
 
 AudioFaust::~AudioFaust()
 {
-    int inputs = fDSP->getNumInputs();
-    int outputs = fDSP->getNumOutputs();
+    int inputs = fDSP ? fDSP->getNumInputs() : 0;
+    int outputs = fDSP ? fDSP->getNumOutputs() : 0;
+    if (fDSP) {
 #ifdef NVOICES
-    delete fPoly;  // destroys the voices
+        delete fPoly;  // destroys the voices
 #else
-    deleteVoice(fDSP);
+        deleteVoice(fDSP);
 #endif
 #ifdef FAUST_TEENSY_MEM
-    teensy_memory::reset();  // the DTCM arena is freed as a whole
+        mydsp::classDestroy();  // the static tables, after the voices (or the DSP)
 #endif
+    }
     delete fUI;
     for (int i = 0; i < inputs; i++) {
         delete[] fInChannel[i];
@@ -209,6 +242,14 @@ AudioFaust::~AudioFaust()
 template <int INPUTS, int OUTPUTS>
 void AudioFaust::updateImp(void)
 {
+    if (!fDSP) {
+        // no memory for the DSP: take the inputs, send nothing (silence)
+        for (int channel = 0; channel < INPUTS; channel++) {
+            audio_block_t* block = receiveReadOnly(channel);
+            if (block) release(block);
+        }
+        return;
+    }
 #if MIDICTRL
     if (!fMIDIInterface) {
         startMidi();
